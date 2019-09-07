@@ -58,7 +58,25 @@ curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
 
 $response = curl_exec( $ch );
 
-if ( 200 == curl_getinfo( $ch, CURLINFO_HTTP_CODE ) )
+if ( 200 == curl_getinfo( $ch, CURLINFO_HTTP_CODE ) ) {
+	// If certain files are also available, then include them (and execute them) in order.
+	// Files should be in /plugins/ and should end in .php
+	$plugins = array(
+		$_GET['do'],						// (un)lock.php (for all locks)
+		$_GET['do'] . '-' . $_GET['lock'],	// (un)lock-LOCKNAME.php (for specific locks)
+		$_GET['lock'],						// LOCKNAME.php (for all events on a specific lock)
+		'always'							// always.php (literal, fires for all locks/events)
+	);
+	foreach ( $plugins as $plugin ) {
+		$plugin = dirname( __FILE__ ) . '/plugins/' . $plugin . '.php';
+		if ( file_exists( $plugin ) && is_readable( $plugin ) ) {
+			include $plugin;
+		}
+	}
+
+	// Done
 	die( $_GET['lock'] . ' ' . $_GET['do'] . 'ed'  );
-else
+} else {
+	// Something went wrong withe the Lockitron request
 	die( 'Failed to ' . $_GET['do'] . ' ' . $_GET['lock'] );
+}
